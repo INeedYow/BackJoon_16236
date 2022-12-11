@@ -47,12 +47,13 @@ ex)
 
 using System.Collections.Generic;
 
-// TODO 예제 2개 정답이 다름
+
 
 namespace BackJoon_16236
 {
     public class Direction
     {   // up, left, right, down (같은 거리일 경우, 가장 위 물고기 -> 가장 왼쪽 물고기 조건
+            // 거리가 2이상인 경우 문제 생김
         public static int[] X = { 0, -1, 1, 0 };
         public static int[] Y = { -1, 0, 0, 1 };
     }
@@ -103,7 +104,6 @@ namespace BackJoon_16236
                 // -1 : 방문한 적 없음 / 0 ~ n : 이동 거리
                     // 이동 거리 계산 : 상하좌우 탐색 시 부모 좌표의 값(이동 거리) ++;
             int[,] visitedMap = new int[mapSize, mapSize];
-            ResetVisitedMap(ref visitedMap);
 
 
             int moveCount = 0;
@@ -112,6 +112,7 @@ namespace BackJoon_16236
 
             Point sharkPos;
             Point neighborPos;
+            Point targetPos = new Point(100, 100); ;
 
             bool isStartPoint = true;
 
@@ -119,12 +120,15 @@ namespace BackJoon_16236
             while (nextPoints.Count != 0)
             {
                 sharkPos = nextPoints.Dequeue();
+                
 
                 // mark start point
                 if (isStartPoint)
                 {
+                    ResetVisitedMap(ref visitedMap);
                     visitedMap[sharkPos.y, sharkPos.x] = 0;
                     isStartPoint = false;
+                    targetPos = new Point(100, 100);
                 }
 
                 // search neighbor points
@@ -145,24 +149,74 @@ namespace BackJoon_16236
                     if (visitedMap[neighborPos.y, neighborPos.x] != -1)
                         continue;
 
+
                     // 이동 거리
                     visitedMap[neighborPos.y, neighborPos.x] = visitedMap[sharkPos.y, sharkPos.x] + 1;
-                    //DrawMap(ref visitedMap);
+                    DrawMap(ref visitedMap);
 
-                    // Eat
+
+                    // 먹을 수 있는 경우
                     if (inputMap[neighborPos.y, neighborPos.x] < sharkSize && inputMap[neighborPos.y, neighborPos.x] > 0)
                     {
-                        //Console.WriteLine($"Eat !! moveCount += {visitedMap[neighborPos.y, neighborPos.x]}");
-                        //Console.WriteLine();
-                        moveCount += visitedMap[neighborPos.y, neighborPos.x];
+                        // 위쪽, 왼쪽 타겟인지 비교
+                        if (targetPos.y > neighborPos.y || (targetPos.y == neighborPos.y && targetPos.x > neighborPos.x))
+                        {
+                            targetPos = neighborPos;
+                        }
+                    }
+                    // 지나갈 수 있는 경우
+                    else
+                    {
+                        nextPoints.Enqueue(neighborPos);
+                    }
+                }
+
+                // 먹이를 찾았을 때
+                if (targetPos.x != 100)
+                {   
+                    // 탐색할 point가 남아있고
+                    if (nextPoints.Count != 0)
+                    {
+                        Point nextPoint = nextPoints.Peek();
+                        
+                        // 동일한 거리의 point를 모두 탐색한 경우
+                        if (visitedMap[targetPos.y, targetPos.x] != visitedMap[nextPoint.y, nextPoint.x] + 1)
+                        {   
+                            Console.WriteLine($"Eat !! moveCount += {visitedMap[targetPos.y, targetPos.x]}");
+                            Console.WriteLine();
+                            moveCount += visitedMap[targetPos.y, targetPos.x];
+
+                            // reset queue & map
+                            nextPoints.Clear();
+                            nextPoints.Enqueue(targetPos);
+
+                            // remove fish
+                            inputMap[targetPos.y, targetPos.x] = 0;
+
+
+                            // level up
+                            if (++eatCount >= sharkSize)
+                            {
+                                eatCount = 0;
+                                ++sharkSize;
+                            }
+
+                            isStartPoint = true;
+                        }
+                    }
+                    // 탐색할 point가 없는 경우
+                    else
+                    {
+                        Console.WriteLine($"Eat !! moveCount += {visitedMap[targetPos.y, targetPos.x]}");
+                        Console.WriteLine();
+                        moveCount += visitedMap[targetPos.y, targetPos.x];
 
                         // reset queue & map
                         nextPoints.Clear();
-                        nextPoints.Enqueue(neighborPos);
-                        ResetVisitedMap(ref visitedMap);
+                        nextPoints.Enqueue(targetPos);
 
                         // remove fish
-                        inputMap[neighborPos.y, neighborPos.x] = 0;
+                        inputMap[targetPos.y, targetPos.x] = 0;
 
 
                         // level up
@@ -173,19 +227,14 @@ namespace BackJoon_16236
                         }
 
                         isStartPoint = true;
-                        break;
-                    }
-                    //
-                    else
-                    {
-                        nextPoints.Enqueue(neighborPos);
                     }
                 }
+
+
             }
 
 
-
-            Console.WriteLine($"Answer : {moveCount}");
+            Console.WriteLine(moveCount);
         }
 
 
